@@ -4,6 +4,8 @@ from dash.dash_table import DataTable
 import pandas as pd
 import plotly.express as px
 
+
+
 # Read Excel file into a pandas DataFrame
 file_path = 'data.xlsx'
 xls = pd.ExcelFile(file_path, engine='openpyxl')
