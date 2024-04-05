@@ -3,24 +3,32 @@ from dash import dcc, html, Input, Output
 from dash.dash_table import DataTable
 import pandas as pd
 import plotly.express as px
-
-
+import openpyxl
 
 # Read Excel file into a pandas DataFrame
-file_path = 'data.xlsx'
-xls = pd.ExcelFile(file_path, engine='openpyxl')
+file_path = 'Call Entries updated.xlsx'
+
+# Define specific sheet names
+sheet_names = ["Kavitha", "Meenu", "Ajanya", "AJITH"]
 
 # Create a dictionary to store category data for each sheet
 category_data = {}
 
-# Iterate through each sheet in the Excel file
-for sheet_name in xls.sheet_names:
+# Iterate through specific sheets in the Excel file
+for sheet_name in sheet_names:
     df = pd.read_excel(file_path, sheet_name=sheet_name, engine='openpyxl')
 
-    # Check if 'Category' column exists
+    # Standardize column names to ensure consistency
     if 'Category' in df.columns:
-        # Store category data in the dictionary
-        category_data[sheet_name] = df
+        df.rename(columns={'Category': 'Category'}, inplace=True)
+    elif 'Category ' in df.columns:
+        df.rename(columns={'Category ': 'Category'}, inplace=True)
+    elif 'Category:' in df.columns:
+        df.rename(columns={'Category:': 'Category'}, inplace=True)
+    else:
+        raise ValueError(f"Category column not found in sheet '{sheet_name}'")
+
+    category_data[sheet_name] = df
 
 # Initialize the Dash app
 app = dash.Dash(__name__)
@@ -54,6 +62,7 @@ app.layout = html.Div([
     ])
 ])
 
+
 # Define callback to update the table based on pie chart selection
 @app.callback(
     Output('table', 'data'),
@@ -69,10 +78,21 @@ def update_table(*clickData):
     if selected_category is None:
         return []
 
-    # Filter data based on selected category
-    filtered_data = pd.concat([df[df['Category'] == selected_category] for df in category_data.values()])
+    # Find the sheet name associated with the clicked pie chart
+    clicked_sheet = None
+    for sheet_name in category_data.keys():
+        if f'pie-chart-{sheet_name}' in dash.callback_context.triggered_id:
+            clicked_sheet = sheet_name
+            break
+
+    if clicked_sheet is None:
+        return []
+
+    # Filter data based on selected category and clicked sheet
+    filtered_data = category_data[clicked_sheet][category_data[clicked_sheet]['Category'] == selected_category]
 
     return filtered_data.to_dict('records')
+
 
 # Run the Dash app
 if __name__ == '__main__':
