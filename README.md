@@ -3,6 +3,9 @@
 ## Description
 This Dash app displays category distribution using pie charts and allows users to explore category-wise data using an interactive table.
 
+
+
+
 ## Installation
 1. Clone this repository:
    ```bash
