@@ -14,7 +14,8 @@ sheet_names = ["Kavitha", "Meenu", "Ajanya", "AJITH"]
 # Create a dictionary to store category data for each sheet
 category_data = {}
 
-# Iterate through specific sheets in the Excel file
+# Consolidate data from all sheets into a single DataFrame
+consolidated_data = pd.DataFrame()
 for sheet_name in sheet_names:
     df = pd.read_excel(file_path, sheet_name=sheet_name, engine='openpyxl')
 
@@ -29,6 +30,7 @@ for sheet_name in sheet_names:
         raise ValueError(f"Category column not found in sheet '{sheet_name}'")
 
     category_data[sheet_name] = df
+    consolidated_data = pd.concat([consolidated_data, df], ignore_index=True)
 
 # Initialize the Dash app
 app = dash.Dash(__name__)
@@ -44,6 +46,11 @@ app.layout = html.Div([
             values='Count', names='Category', title=f'Category Distribution - {sheet_name}'
         ))
         for sheet_name in category_data.keys()
+    ]),
+
+    # Display pie chart for consolidated data
+    html.Div([
+        dcc.Graph(id='consolidated-pie-chart')
     ]),
 
     # Display the interactive table
@@ -66,7 +73,8 @@ app.layout = html.Div([
 # Define callback to update the table based on pie chart selection
 @app.callback(
     Output('table', 'data'),
-    [Input(f'pie-chart-{sheet_name}', 'clickData') for sheet_name in category_data.keys()]
+    [Input(f'pie-chart-{sheet_name}', 'clickData') for sheet_name in category_data.keys()] +
+    [Input('consolidated-pie-chart', 'clickData')]
 )
 def update_table(*clickData):
     selected_category = None
@@ -78,20 +86,34 @@ def update_table(*clickData):
     if selected_category is None:
         return []
 
-    # Find the sheet name associated with the clicked pie chart
-    clicked_sheet = None
-    for sheet_name in category_data.keys():
-        if f'pie-chart-{sheet_name}' in dash.callback_context.triggered_id:
-            clicked_sheet = sheet_name
-            break
+    if 'consolidated-pie-chart' in dash.callback_context.triggered_id:
+        # Filter data based on selected category for consolidated data
+        filtered_data = consolidated_data[consolidated_data['Category'] == selected_category]
+    else:
+        # Find the sheet name associated with the clicked pie chart
+        clicked_sheet = None
+        for sheet_name in category_data.keys():
+            if f'pie-chart-{sheet_name}' in dash.callback_context.triggered_id:
+                clicked_sheet = sheet_name
+                break
 
-    if clicked_sheet is None:
-        return []
+        if clicked_sheet is None:
+            return []
 
-    # Filter data based on selected category and clicked sheet
-    filtered_data = category_data[clicked_sheet][category_data[clicked_sheet]['Category'] == selected_category]
+        # Filter data based on selected category and clicked sheet
+        filtered_data = category_data[clicked_sheet][category_data[clicked_sheet]['Category'] == selected_category]
 
     return filtered_data.to_dict('records')
+
+
+# Callback to update consolidated pie chart
+@app.callback(
+    Output('consolidated-pie-chart', 'figure'),
+    [Input(f'pie-chart-{sheet_name}', 'clickData') for sheet_name in category_data.keys()]
+)
+def update_consolidated_pie_chart(*clickData):
+    category_counts = consolidated_data.groupby('Category').size().reset_index(name='Count')
+    return px.pie(category_counts, values='Count', names='Category', title='Consolidated Category Distribution')
 
 
 # Run the Dash app
