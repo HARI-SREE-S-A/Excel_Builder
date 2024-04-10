@@ -123,4 +123,3 @@ def update_consolidated_pie_chart(selected_date):
 # Run the Dash app
 if __name__ == '__main__':
     app.run_server(debug=True)
-
