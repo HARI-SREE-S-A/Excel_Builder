@@ -3,32 +3,55 @@ from dash import dcc, html, Input, Output
 from dash.dash_table import DataTable
 import pandas as pd
 import plotly.express as px
+from datetime import datetime
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
-# Set up the Google Sheet connection
+# Define Google Sheets credentials
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-creds = ServiceAccountCredentials.from_json_keyfile_name('path/to/your/credentials.json', scope)
-client = gspread.authorize(creds)
+credentials = {
+  "type": "service_account",
+  "project_id": "excel-report-418",
+  "private_key_id": "a85d8696784070c1eb18e3ad9d7919dcb2",
+  "private_key": "-----BEGIN PRIVATE KEY-----\n\n-----END PRIVATE KEY-----\n",
+  "client_email": "excel-api@excel-report-418.iaerviceaccount.com",
+  "client_id": "104174658286889668287",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.is.com/oauth2/certs",
+  "client_x509_cert_url": "https://ww/509/excel-apint.com",
+  "universe_domain": "googleapis.com"
+}
+
+# Authenticate with Google Sheets API
+credentials = ServiceAccountCredentials.from_json_keyfile_dict(credentials, scope)
+gc = gspread.authorize(credentials)
 
 # Open the Google Sheet
-sheet = client.open("Call Entries updated").sheet1
+sheet_url = 'https://docs.google.com/spreadsheets/d/1LZ7-HhZddRrOLraTUWLTQH_dyGiQC7Bya2ssnZucChs/edit?usp=drive_link'
+sh = gc.open_by_url(sheet_url)
 
-# Read the data into a pandas DataFrame
-data = sheet.get_all_values()
-column_names = data.pop(0)
-df = pd.DataFrame(data, columns=column_names)
-
-# Define specific sheet names
+# Read specific sheets into a pandas DataFrame
 sheet_names = ["Kavitha", "Meenu", "Ajanya", "AJITH"]
-# Create a dictionary to store category data for each sheet
 category_data = {}
-# Consolidate data from all sheets into a single DataFrame
 consolidated_data = pd.DataFrame()
+
 for sheet_name in sheet_names:
-    sheet_data = df[df['Sheet'] == sheet_name]
-    category_data[sheet_name] = sheet_data
-    consolidated_data = pd.concat([consolidated_data, sheet_data], ignore_index=True)
+    worksheet = sh.worksheet(sheet_name)
+    records = worksheet.get_all_records(expected_headers=["Date", "Category"])
+    df = pd.DataFrame(records)
+    if 'Category' in df.columns:
+        df.rename(columns={'Category': 'Category'}, inplace=True)
+    elif 'Category ' in df.columns:
+        df.rename(columns={'Category ': 'Category'}, inplace=True)
+    elif 'Category:' in df.columns:
+        df.rename(columns={'Category:': 'Category'}, inplace=True)
+    else:
+        raise ValueError(f"Category column not found in sheet '{sheet_name}'")
+    # Parse the 'Date' column as datetime with the 'mixed' format option
+    df['Date'] = pd.to_datetime(df['Date'], format='%d/%m/%Y', errors='coerce')
+    category_data[sheet_name] = df
+    consolidated_data = pd.concat([consolidated_data, df], ignore_index=True)
 
 # Initialize the Dash app
 app = dash.Dash(__name__)
@@ -42,7 +65,7 @@ app.layout = html.Div([
         min_date_allowed=consolidated_data['Date'].min(),
         max_date_allowed=consolidated_data['Date'].max(),
         initial_visible_month=consolidated_data['Date'].max(),
-        date=consolidated_data['Date'].max()  # Default to the latest date
+        date=datetime.now().date()  # Default to today's date
     ),
     # Display pie charts for each sheet
     html.Div(id='pie-charts', className='pie-chart-container'),
