@@ -10,16 +10,17 @@ from oauth2client.service_account import ServiceAccountCredentials
 # Define Google Sheets credentials
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 credentials = {
-    "type": "service_account",
-    "project_id": "excel-report-419918",
-    "private_key_id": "a85d8696784070c1eb18e32f228fad9d7919dcb2",--END PRIVATE KEY-----\n",
-    "client_email": "excel-api@excel-report-419918.iam.gserviceaccount.com",
-    "client_id": "104174658286889668287",
-    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-    "token_uri": "https://oauth2.googleapis.com/token",
-    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-    "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/excel-api%40excel-report-419918.iam.gserviceaccount.com",
-    "universe_domain": "googleapis.com"
+  "type": "serviaccount",
+  "project_id": "excel-report-918",
+  "private_key_id": "a85d86967840702f228fad9d7919dcb2",
+  "private_key": "-----BEGIN PRIVATE KEY-----\n\n-----END PRIVATE KEY-----\n",
+  "client_email": "excel-api@excel-report-419918.iam.gserviceaccount.com",
+  "client_id": "104174658286889668287",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googlis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.gois.com/robot/v1/tadata/x509/excel-api%4xcel-rport1918.iamseviceaccount.com",
+  "universe_domain": "googleapis.com"
 }
 
 # Authenticate with Google Sheets API
@@ -37,7 +38,7 @@ consolidated_data = pd.DataFrame()
 
 for sheet_name in sheet_names:
     worksheet = sh.worksheet(sheet_name)
-    records = worksheet.get_all_records(expected_headers=["Date", "Category"])  # Specify expected headers
+    records = worksheet.get_all_records(expected_headers=["Date", "Category"])
     df = pd.DataFrame(records)
     if 'Category' in df.columns:
         df.rename(columns={'Category': 'Category'}, inplace=True)
@@ -47,11 +48,10 @@ for sheet_name in sheet_names:
         df.rename(columns={'Category:': 'Category'}, inplace=True)
     else:
         raise ValueError(f"Category column not found in sheet '{sheet_name}'")
+    # Parse the 'Date' column as datetime with the 'mixed' format option
+    df['Date'] = pd.to_datetime(df['Date'], format='%d/%m/%Y', errors='coerce')
     category_data[sheet_name] = df
     consolidated_data = pd.concat([consolidated_data, df], ignore_index=True)
-
-# Parse the 'Date' column as datetime with errors='coerce'
-consolidated_data['Date'] = pd.to_datetime(consolidated_data['Date'], format='%d/%m/%Y', errors='coerce')
 
 # Initialize the Dash app
 app = dash.Dash(__name__)
@@ -66,7 +66,7 @@ app.layout = html.Div([
         min_date_allowed=consolidated_data['Date'].min(),
         max_date_allowed=consolidated_data['Date'].max(),
         initial_visible_month=consolidated_data['Date'].max(),
-        date=datetime.now().date()  # Default to today's date
+        date=consolidated_data['Date'].max()  # Default to the latest date
     ),
 
     # First pie chart showing consolidated data count for category column in all four sheets
