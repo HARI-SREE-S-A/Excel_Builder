@@ -138,6 +138,4 @@ def update_consolidated_pie_chart(selected_date):
                                            values='Count', names='Category', title='Consolidated Category Distribution')
     return consolidated_pie_chart_figure
 
-# Run the Dash app
-if __name__ == '__main__':
-    app.run_server(debug=True)
+
