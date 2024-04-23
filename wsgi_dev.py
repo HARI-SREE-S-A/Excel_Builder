@@ -1,3 +1,3 @@
-from consolidated_gsheet import consolidated_gsheet
+from consolidated_gsheet import app
 if __name__ == '__main__':
     app.run_server(debug=True)
