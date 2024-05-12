@@ -6,6 +6,8 @@ This Dash app displays category distribution using pie charts and allows users t
 
 
 
+
+
 ## Installation
 1. Clone this repository:
    ```bash
