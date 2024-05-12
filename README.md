@@ -8,7 +8,7 @@ This Dash app displays category distribution using pie charts and allows users t
 
 
 
-## Installation
+## Installations
 1. Clone this repository:
    ```bash
    git clone(https://github.com/HARI-SREE-S-A/Excel_Report_Builder).git
